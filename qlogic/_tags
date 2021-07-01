@@ -1,0 +1,1 @@
+<compiler/QDriver.*{byte,native}>: use_Cparser,use_str

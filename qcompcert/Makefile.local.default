@@ -1,0 +1,14 @@
+# The default locations and options for Coq and ocamlbuild.
+
+MYCOQC=coqc
+MYCOQDEP=coqdep
+MYCOQDOC=coqdoc
+MYCOQEXEC=coqtop
+MYCOQCHK=coqchk
+MYCOQTOP=coqtop
+
+MYOCAMLBUILD=ocamlbuild
+MYOCB_OPTIONS=
+
+OCAMLOPT=ocamlopt
+OCAMLLEX=ocamllex

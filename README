@@ -1,0 +1,186 @@
+Stack Aware CompCert & Quantitative Logic
+=========================================
+
+-= Authors =-
+
+Quentin Carbonneaux             quentin.carbonneaux@yale.edu
+Jan Hoffmann                    jan.hoffmann@yale.edu
+Tahina Ramananandro             tahina.ramananandro@yale.edu
+Zhong Shao                      zhong.shao@yale.edu
+
+PLDI 2014 Paper:
+  End-to-End Verification of Stack-Space Bounds for C Programs
+
+
+-= Contents =-
+
+This package contains a modification of the CompCert C
+compiler version 1.13 to make it resource aware with respect
+to the stack.  You can find its full source code in Coq in
+the sub-directory
+
+    qcompcert/
+
+This package also contains a Quantitative Hoare logic to
+reason about Cxlight programs, a restricted but expressive
+subset of CompCert's Clight. These Cxlight programs can be
+compiled by a certified compiler to x86 assembly language.
+You can find the full source code for the logic and the
+Cxlight compiler (using the Quantitative CompCert as a
+backend) in the sub-directory
+
+    qlogic/
+
+
+
+-= Build instructions =-
+
+NOTES:  Coq 8.4 and Ocaml 4.00 are required by the build.
+        The build was only tested on a Linux computer.
+        Your file system must support symbolic links.
+
+        If you are using the virtual machine, the source
+	code is already compiled!  You can skip straight
+	to the 'Try it!' section.
+
+
+- Quantitative CompCert
+
+Since the Cxlight toolkit uses the Quantitative CompCert as
+a backend you must compile it first by issuing the following
+commands in the qcompcert sub-directory.
+
+    ./configure ia32-linux           # Only this backend is
+                                     # currently supported.
+    make -j                          # Wait a few minutes...
+
+You now have a stack aware CompCert on your computer, it is
+the ./ccomp executable located in qcompcert.  As described
+in the PLDI paper this compiler will work exactly as the
+original CompCert except that it compiles to a stack aware
+assembly. 
+
+- Quantitative Logic
+
+To build the Cxlight compiler with builtin stack bound
+inference you must now go in the qlogic sub-directory and
+issue the following commands.
+
+    ./configure
+    make -j                          # Wait a few minutes...
+
+You now have a Quantitative Hoare logic you can use in the
+file Logic.v, a Cxlight compiler with built in automatic
+stack consumption analysis in the file ./qccomp.
+
+
+
+-= Hand proved examples =-
+
+Some hand proved examples are available in the examples
+sub-directory in qlogic.  By default they are not built, you
+can skim through them iteractively or build them using the
+--examples flag of configure in qlogic.
+
+    # into the sub-directory qlogic
+    ./configure --examples
+    make -j                          # Wait a few minutes...
+
+
+
+-= Try it! =-
+
+Go on and try it on some examples, for instance on the
+dijkstra.c file in qlogic/tests/mibench/net.  Here is the
+commands that will do it:
+
+    cd tests/mibench/net/
+    ../../../qccomp dijkstra.c
+
+At this point, you get an assembly file dijkstra.s, and a
+bound file dijkstra.bnd.  The dijkstra.bnd contains:
+
+    [-] Stack bounds for program functions:
+
+    malloc <= 8 bytes
+    free <= 8 bytes
+    fopen <= 16 bytes
+    enqueue <= 40 bytes
+    dequeue <= 40 bytes
+    qcount <= 8 bytes
+    dijkstra <= 88 bytes
+    main <= 120 bytes
+
+    [-] Overall stack consumption <= 124 bytes
+
+The compiler infers that this program can run on a stack of
+124 bytes.
+
+
+
+-= So, you want to read the proofs? =-
+
+
+- The Quantitative CompCert C Verified Compiler for x86
+
+Section 3 of our PLDI 2014 paper explains how we modified
+CompCert to make it stack-aware.  If you want to read these
+files for the first time, we advise you to follow this order:
+
+Modified files:
+
+- driver/Complements.v : Theorem 1 (section 3.2) about
+  the preservation of behaviors.
+
+- driver/Compiler.v : simulation diagrams adapted to
+  quantitative refinement (section 3.1).
+
+- ia32/Asm.v , ia32 assembly language syntax and semantics,
+  which no longer needs Pallocframe/Pfreeframe stack-handling
+  pseudo-instructions.
+
+- ia32/Asmgenproof.v : modified accordingly to actually
+  perform stack pointer arithmetics upon function call/return.
+
+New files:
+
+- ia32/Mach2.v , derived from Mach.v but where all stack
+  frames are merged within a single whole-program stack block.
+
+- ia32/Mach2Mach2.v , proof of reinterpretation of Mach to
+  Mach2.
+
+
+- The Quantitative Logic
+
+Here is a list of Coq files that are worth looking at if
+you want to see how the system works.  We tried to make
+a selection of *short* files with little or no proofs, so
+you can actually see how the system works.
+
+- Core.v : This is the core C-like language that we use
+  in all the development.  An instance of this language
+  template is in 'Cxlight.v' (boring file), this Cxlight
+  language has a verified compiler towards CompCert Clight
+  in 'Cx2C.v'.
+
+- Logic.v : This file defines the Quantitative Logic,
+  and proves its soundness (see the 'sound_' lemmas).
+
+- examples/Fibonacci.v : This is a proof by hand of a
+  stack bound for the Fibonacci function implemented as
+  a simple recursive function.
+
+- compiler/CoreCompiler.v : This is a C compiler that
+  performs automatic stack bound inference using the
+  automation we implemented in Coq.  The file is mostly
+  boring, you should only look at the statement of the
+  theorem compiler_correctness_Some at the end of the
+  file.
+
+  It says that if the compiler succeeds (hence the
+  automatic bound analysis succeeds and the bound is
+  lower than bmain), then there is a bisimulation
+  between the compiled and the source program when the
+  former is run on a machine with [bmain] bytes of
+  stack.

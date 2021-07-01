@@ -1,0 +1,69 @@
+include ../../Makefile.config
+
+CCOMP=../../ccomp
+CCOMPFLAGS=-stdlib ../../runtime -dc -dclight -dasm
+
+CFLAGS=-O1 -Wall
+
+LIBS=$(LIBMATH)
+
+TIME=xtime -o /dev/null -mintime 1.0     # Xavier's hack
+#TIME=time >/dev/null                    # Otherwise
+
+PROGS=fib integr qsort fft sha1 aes almabench lists \
+  binarytrees fannkuch knucleotide mandelbrot nbody \
+  nsieve nsievebits spectral vmach \
+  bisect chomp perlin floats floats-basics
+
+PROGS_INTERP=floats floats-basics
+
+all: $(PROGS:%=%.compcert)
+
+all_s: $(PROGS:%=%.s)
+
+all_gcc: $(PROGS:%=%.gcc)
+
+%.compcert: %.c $(CCOMP)
+	$(CCOMP) $(CCOMPFLAGS) -o $*.compcert $*.c $(LIBS)
+
+%.s: %.c $(CCOMP)
+	$(CCOMP) $(CCOMPFLAGS) -S $*.c
+
+%.gcc: %.c
+	$(CC) $(CFLAGS) -o $*.gcc $*.c $(LIBS)
+
+test:
+	@for i in $(PROGS); do \
+	   if ./$$i.compcert | cmp -s - Results/$$i; \
+           then echo "$$i: passed"; \
+           else echo "$$i: FAILED"; \
+	   fi; \
+         done
+	@for i in $(PROGS_INTERP); do \
+	   if $(CCOMP) -interp -quiet $$i.c | cmp -s - Results/$$i; \
+           then echo "$$i (interpreted): passed"; \
+           else echo "$$i (interpreted): FAILED"; \
+	   fi; \
+         done
+
+test_gcc:
+	@for i in $(PROGS); do \
+	   if ./$$i.gcc | cmp -s - Results/$$i; \
+           then echo "$$i: passed"; \
+           else echo "$$i: FAILED"; \
+	   fi; \
+         done
+
+bench_gcc:
+	@for i in $(PROGS); do \
+	   echo -n "$$i: "; $(TIME) ./$$i.gcc; \
+         done
+
+bench:
+	@for i in $(PROGS); do \
+	   echo -n "$$i: "; $(TIME) ./$$i.compcert; \
+         done
+
+clean:
+	rm -f *.compcert *.gcc
+	rm -f *.light.c *.parsed.c *.s *.o *~ 

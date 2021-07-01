@@ -1,0 +1,10 @@
+*~
+*.vo
+extraction/STAMP
+extraction/*.ml
+extraction/*.mli
+_build
+/compcert
+glob
+Makefile.config
+qccomp
